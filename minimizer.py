@@ -49,10 +49,10 @@ def tokenize(expr):
         if matched:
             continue
 
-        if expr[i] in string.ascii_lowercase:
+        if expr[i] in string.ascii_letters:
             begin = i
 
-            while i < len(expr) and expr[i] in string.ascii_lowercase:
+            while i < len(expr) and expr[i] in string.ascii_letters:
                 i += 1
 
             text = expr[begin:i]
@@ -92,7 +92,7 @@ def validate(tokens):
 
 
 def extract_variables(tokens):
-    return sorted(token.name for token in tokens if type(token) is VarToken)
+    return sorted(set(token.name for token in tokens if type(token) is VarToken))
 
 
 def generate_values(count):
@@ -154,7 +154,7 @@ def evaluate(rpn, variable_values):
         elif e == Token.OR:
             rhs = stack.pop()
             lhs = stack.pop()
-            stack.append(lhs and rhs)
+            stack.append(lhs or rhs)
         elif e == Token.XOR:
             rhs = stack.pop()
             lhs = stack.pop()
@@ -194,7 +194,8 @@ class Minterm:
             elif bit is None:
                 return '-'
 
-        return ' '.join(bit_to_string(bit) for bit in self.bits) + ' (' + ','.join(map(str, sorted(self.sources))) + ')'
+        return ' '.join(bit_to_string(bit) for bit in self.bits) + \
+               '  m(' + ','.join(map(str, sorted(self.sources))) + ')'
 
     def __eq__(self, other):
         return self.bits == other.bits
@@ -240,16 +241,17 @@ class MintermCombiner:
         while True:
             n = len(self.minterms)
 
-            self.phase_combine()
+            any_combined = self.phase_combine()
             self.debug_print("Combined:")
 
             self.phase_remove_duplicates()
             self.debug_print("Removed duplicates:")
 
-            if n == len(self.minterms):
+            if not any_combined:
                 break
 
     def phase_combine(self):
+        any_combined = False
         used = [False] * len(self.minterms)
 
         results = []
@@ -261,13 +263,13 @@ class MintermCombiner:
                 used[idx1] = True
                 used[idx2] = True
                 results.append(combined)
-
-            if minterm1 == minterm2:
-                used[idx2] = True
+                any_combined = True
 
         results += [minterm for idx, minterm in enumerate(self.minterms) if not used[idx]]
 
         self.minterms = results
+
+        return any_combined
 
     def phase_remove_duplicates(self):
         self.minterms = list(set(self.minterms))
@@ -280,9 +282,41 @@ class MintermCombiner:
             print()
 
 
+class PrimeImplicantChart:
+
+    def __init__(self, original_minterms, combined_minterms):
+        self.original_minterms = sorted(next(iter(minterm.sources)) for minterm in original_minterms)
+        self.combined_minterms = combined_minterms
+
+    def run(self):
+        used_original = set()
+        used_combined = set()
+
+        for minterm in self.original_minterms:
+            if minterm in used_original:
+                continue
+
+            related_combined = [combined for combined in self.combined_minterms
+                                if combined not in used_combined and minterm in combined.sources]
+
+            if len(related_combined) == 1:
+                used_original |= related_combined[0].sources
+                used_combined.add(related_combined[0])
+
+        for combined in self.combined_minterms:
+            for original in self.original_minterms:
+                if original in combined.sources:
+                    print('X ', end='')
+                else:
+                    print('O ', end='')
+            print(combined)
+
+        return used_combined
+
+
 def main():
     # expr = sys.argv[1]
-    expr = 'a & !b == (b => c)'
+    expr = '(A | B) & (A | C)'
     tokens = tokenize(expr)
 
     if tokens is False:
@@ -315,6 +349,16 @@ def main():
 
     mc = MintermCombiner(minterms, debug_log=True)
     mc.run()
+    combined_minterms = mc.minterms
+
+    pic = PrimeImplicantChart(minterms, combined_minterms)
+
+    result = pic.run()
+
+    print("Final result:")
+    for minterm in result:
+        print(str(minterm))
+    print()
 
 
 if __name__ == '__main__':
