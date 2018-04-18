@@ -2,6 +2,7 @@ import string
 import sys
 from enum import Enum
 import itertools
+from typing import List, Union
 
 
 class Token(Enum):
@@ -175,50 +176,108 @@ def evaluate(rpn, variable_values):
     return stack.pop()
 
 
-def print_minterms(minterms):
-    def bit_to_string(bit):
-        if bit is True:
-            return '1'
-        elif bit is False:
-            return '0'
-        elif bit is None:
-            return '-'
-
-    print()
-    for minterm in minterms:
-        print(' '.join(map(bit_to_string, minterm)))
-    print()
-
-
-def combine_minterms(minterms):
-    def combine(minterm1, minterm2):
-        diff = []
-        for idx, (v1, v2) in enumerate(zip(minterm1, minterm2)):
-            if v1 is not None and v2 is not None and v1 != v2:
-                diff.append(idx)
-
-        if len(diff) != 1:
-            return None
+class Minterm:
+    def __init__(self, bits, sources=None):
+        self.bits = tuple(bits)
+        if sources:
+            self.sources = set(sources)
         else:
-            combined = list(minterm1)
-            combined[diff[0]] = None
-            return tuple(combined)
+            number = sum(2 ** idx for idx, bit in enumerate(bits) if bit)
+            self.sources = {number}
 
-    used = [False] * len(minterms)
+    def __str__(self):
+        def bit_to_string(bit):
+            if bit is True:
+                return '1'
+            elif bit is False:
+                return '0'
+            elif bit is None:
+                return '-'
 
-    results = []
+        return ' '.join(bit_to_string(bit) for bit in self.bits) + ' (' + ','.join(map(str, sorted(self.sources))) + ')'
 
-    for (idx1, minterm1), (idx2, minterm2) in (itertools.combinations(enumerate(minterms), 2)):
-        combined = combine(minterm1, minterm2)
+    def __eq__(self, other):
+        return self.bits == other.bits
 
-        if combined is not None:
-            used[idx1] = True
-            used[idx2] = True
-            results.append(combined)
+    def __hash__(self):
+        return self.bits.__hash__()
 
-    results += [minterm for idx, minterm in enumerate(minterms) if not used[idx]]
+    def combine_with(self, other):
+        conflicts = []  # '0' and '1' on same position
+        self_contains_other = []  # self has '-', other has '0'/'1'
+        other_contains_self = []  # self has '0'/'1', other has '-'
 
-    return results
+        for idx, (b1, b2) in enumerate(zip(self.bits, other.bits)):
+            if b1 is not None and b2 is not None and b1 != b2:
+                conflicts.append(idx)
+            elif b1 is None and b2 is not None:
+                self_contains_other.append(idx)
+            elif b1 is not None and b2 is None:
+                other_contains_self.append(idx)
+            else:
+                assert b1 == b2
+
+        if not conflicts and self_contains_other and not other_contains_self:
+            return Minterm(self.bits, self.sources | other.sources)
+        elif not conflicts and not self_contains_other and other_contains_self:
+            return Minterm(other.bits, self.sources | other.sources)
+        elif len(conflicts) == 1 and not self_contains_other and not other_contains_self:
+            bits = list(self.bits)
+            bits[conflicts[0]] = None
+            return Minterm(bits, self.sources | other.sources)
+        else:
+            return None
+
+
+class MintermCombiner:
+    def __init__(self, minterms, debug_log=False):
+        self.minterms = list(minterms)
+        self.debug_log = debug_log
+
+    def run(self):
+        self.debug_print("Original:")
+
+        while True:
+            n = len(self.minterms)
+
+            self.phase_combine()
+            self.debug_print("Combined:")
+
+            self.phase_remove_duplicates()
+            self.debug_print("Removed duplicates:")
+
+            if n == len(self.minterms):
+                break
+
+    def phase_combine(self):
+        used = [False] * len(self.minterms)
+
+        results = []
+
+        for (idx1, minterm1), (idx2, minterm2) in (itertools.combinations(enumerate(self.minterms), 2)):
+            combined = minterm1.combine_with(minterm2)
+
+            if combined is not None:
+                used[idx1] = True
+                used[idx2] = True
+                results.append(combined)
+
+            if minterm1 == minterm2:
+                used[idx2] = True
+
+        results += [minterm for idx, minterm in enumerate(self.minterms) if not used[idx]]
+
+        self.minterms = results
+
+    def phase_remove_duplicates(self):
+        self.minterms = list(set(self.minterms))
+
+    def debug_print(self, msg):
+        if self.debug_log:
+            print(msg)
+            for minterm in self.minterms:
+                print(str(minterm))
+            print()
 
 
 def main():
@@ -252,11 +311,10 @@ def main():
         evaluated = evaluate(rpn, variable_dict)
         print(v, evaluated)
         if evaluated:
-            minterms.append(tuple(v))
+            minterms.append(Minterm(v))
 
-    for _ in range(3):
-        minterms = combine_minterms(minterms)
-        print_minterms(minterms)
+    mc = MintermCombiner(minterms, debug_log=True)
+    mc.run()
 
 
 if __name__ == '__main__':
