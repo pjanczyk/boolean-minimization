@@ -22,6 +22,8 @@ class FinalResultFormatter:
         for idx in implicant.get_1_bits():
             terms.append(self.variables[idx])
 
+        if len(terms) == 0:
+            return '1'
         if len(terms) == 1:
             return terms[0]
         else:
