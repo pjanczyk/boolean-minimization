@@ -9,7 +9,13 @@ class FinalResultFormatter:
         self.variables = tuple(variables)
         self.implicants = tuple(implicants)
 
-    def format_implicant(self, implicant) -> str:
+    def format(self) -> str:
+        if self.implicants:
+            return ' | '.join(map(self._format_implicant, self.implicants))
+        else:
+            return '0'
+
+    def _format_implicant(self, implicant) -> str:
         terms = []
         for idx in implicant.get_0_bits():
             terms.append('!' + self.variables[idx])
@@ -20,9 +26,3 @@ class FinalResultFormatter:
             return terms[0]
         else:
             return '(' + ' & '.join(terms) + ')'
-
-    def format(self) -> str:
-        if self.implicants:
-            return ' | '.join(map(self.format_implicant, self.implicants))
-        else:
-            return '0'

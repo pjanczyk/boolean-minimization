@@ -1,10 +1,10 @@
 from typing import Iterable, Optional
 
-TriBit = Optional[bool]
+TriLogic = Optional[bool]
 
 
 class Implicant:
-    def __init__(self, bits: Iterable[TriBit], minterms: Optional[Iterable[int]] = None):
+    def __init__(self, bits: Iterable[TriLogic], minterms: Optional[Iterable[int]] = None):
         self.bits = tuple(bits)
         if minterms:
             self.minterms = frozenset(minterms)

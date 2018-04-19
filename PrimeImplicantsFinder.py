@@ -11,21 +11,21 @@ class PrimeImplicantsFinder:
         self.debug_log = debug_log
 
     def find_prime_implicants(self):
-        self.debug_print("Original:")
+        self._debug_print("Original:")
 
         while True:
-            any_combined = self.phase_combine()
-            self.debug_print("Combined:")
+            any_combined = self._phase_combine()
+            self._debug_print("Combined:")
 
-            self.phase_remove_duplicates()
-            self.debug_print("Removed duplicates:")
+            self._phase_remove_duplicates()
+            self._debug_print("Removed duplicates:")
 
             if not any_combined:
                 break
 
         return self.implicants
 
-    def phase_combine(self):
+    def _phase_combine(self):
         any_combined = False
         used = [False] * len(self.implicants)
 
@@ -46,10 +46,10 @@ class PrimeImplicantsFinder:
 
         return any_combined
 
-    def phase_remove_duplicates(self):
+    def _phase_remove_duplicates(self):
         self.implicants = list(set(self.implicants))
 
-    def debug_print(self, msg):
+    def _debug_print(self, msg):
         if self.debug_log:
             print(msg)
             for implicant in self.implicants:

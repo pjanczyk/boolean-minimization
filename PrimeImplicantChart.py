@@ -16,7 +16,18 @@ class PrimeImplicantChart:
         self.used_minterms = set()
         self.used_implicants = set()
 
-    def debug_print(self):
+    def run(self) -> List[Implicant]:
+        self._debug_print()
+
+        while self._eliminate_essential_prime_implicants():
+            self._debug_print()
+
+        if len(self.used_minterms) == len(self.minterms):
+            return list(self.used_implicants)
+        else:
+            return self._patricks_method()
+
+    def _debug_print(self):
         print()
         for implicant in self.prime_implicants:
             if implicant in self.used_implicants:
@@ -34,7 +45,7 @@ class PrimeImplicantChart:
             print(' | ', end='')
             print(implicant)
 
-    def eliminate_essential_prime_implicants(self) -> bool:
+    def _eliminate_essential_prime_implicants(self) -> bool:
         any_eliminated = False
 
         for minterm in self.minterms:
@@ -51,18 +62,7 @@ class PrimeImplicantChart:
 
         return any_eliminated
 
-    def run(self) -> List[Implicant]:
-        self.debug_print()
-
-        while self.eliminate_essential_prime_implicants():
-            self.debug_print()
-
-        if len(self.used_minterms) == len(self.minterms):
-            return list(self.used_implicants)
-        else:
-            return self.patricks_method()
-
-    def patricks_method(self):
+    def _patricks_method(self):
         sum_of_products = []
 
         not_used_minterms = [minterm for minterm in self.minterms if minterm not in self.used_minterms]

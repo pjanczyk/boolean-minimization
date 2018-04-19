@@ -35,6 +35,8 @@ def main():
 
     # for result in results:
     simplified_expr = FinalResultFormatter(variables, result).format()
+
+    print()
     print("Final result:")
     print(simplified_expr)
 

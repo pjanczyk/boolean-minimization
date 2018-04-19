@@ -30,7 +30,7 @@ class VarToken:
 TokenList = List[Union[Token, VarToken]]
 
 
-def tokenize(expr: str) -> Optional[TokenList]:
+def _tokenize(expr: str) -> Optional[TokenList]:
     results = []
 
     i = 0
@@ -65,7 +65,7 @@ def tokenize(expr: str) -> Optional[TokenList]:
     return results
 
 
-def validate(expr: TokenList) -> bool:
+def _validate(expr: TokenList) -> bool:
     state = 1
     parentheses = 0
 
@@ -92,11 +92,11 @@ def validate(expr: TokenList) -> bool:
     return state == 2 and parentheses == 0
 
 
-def extract_variables(expr: TokenList) -> List[str]:
+def _extract_variables(expr: TokenList) -> List[str]:
     return sorted(set(token.name for token in expr if type(token) is VarToken))
 
 
-def infix_to_rpn(expr: TokenList) -> TokenList:
+def _infix_to_rpn(expr: TokenList) -> TokenList:
     priorities = {
         Token.NOT: 2,
         Token.AND: 1,
@@ -142,16 +142,16 @@ class Parser:
         self.rpn = None
 
     def parse(self) -> bool:
-        tokens = tokenize(self.expr)
+        tokens = _tokenize(self.expr)
 
         if tokens is None:
             return False
 
-        if not validate(tokens):
+        if not _validate(tokens):
             return False
 
-        self.variables = extract_variables(tokens)
-        self.rpn = infix_to_rpn(tokens)
+        self.variables = _extract_variables(tokens)
+        self.rpn = _infix_to_rpn(tokens)
 
         return True
 
