@@ -57,10 +57,10 @@ class PrimeImplicantChart:
         while self.eliminate_essential_prime_implicants():
             self.debug_print()
 
-        if len(self.used_minterms) != len(self.minterms):
-            self.patricks_method()
-
-        return list(self.used_implicants)
+        if len(self.used_minterms) == len(self.minterms):
+            return list(self.used_implicants)
+        else:
+            return self.patricks_method()
 
     def patricks_method(self):
         sum_of_products = []
@@ -71,17 +71,31 @@ class PrimeImplicantChart:
             related_implicant_indices = [idx for idx, implicant in enumerate(self.prime_implicants)
                                          if implicant not in self.used_implicants and minterm in implicant.minterms]
 
-            sum_of_products += [VarToken('i' + str(idx)) for idx in related_implicant_indices]
+            sum_of_products += [VarToken(idx) for idx in related_implicant_indices]
             sum_of_products += [Token.AND] * (len(related_implicant_indices) - 1)
 
         sum_of_products += [Token.OR] * (len(not_used_minterms) - 1)
 
         print(sum_of_products)
 
-        variables = tuple('i' + str(idx) for idx, implicant in enumerate(self.prime_implicants)
+        variables = tuple(idx for idx, implicant in enumerate(self.prime_implicants)
                           if implicant not in self.used_implicants)
 
         _, implicants = MintermFinder.generate_minterms(sum_of_products, variables)
         prime_implicants = PrimeImplicantsFinder(implicants, debug_log=True).find_prime_implicants()
 
         print(prime_implicants)
+
+        terms = [implicant.get_1_bits() for implicant in prime_implicants]
+
+        shortest_len = min(len(term) for term in terms)
+
+        terms = [term for term in terms if len(term) == shortest_len]
+        print(terms)
+
+        terms = [[self.prime_implicants[variables[idx]] for idx in term] for term in terms]
+
+        def count_literals(term):
+            return sum(len(implicant.get_0_bits()) + len(implicant.get_1_bits()) for implicant in term)
+
+        return min(terms, key=count_literals)

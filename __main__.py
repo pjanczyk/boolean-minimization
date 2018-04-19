@@ -8,9 +8,13 @@ from PrimeImplicantsFinder import PrimeImplicantsFinder
 def main():
     # expr = sys.argv[1]
     # expr = '(A | B) & (A | C) => (B ^ C)'
-    expr = '!A & (A | B) | ((B | (A & A)) & (A | !B))'
+    expr = '(!A & B & !C & !D) | ' \
+           '(A & !B & !C & !D) | ' \
+           '(A & !B & C & !D) | ' \
+           '(A & !B & C & D) | ' \
+           '(A & B & !C & !D) | ' \
+           '(A & B & C & D)'
     # expr = 'A & 0'
-    # expr = 'A & B & C'
 
     parser = Parser(expr)
     if not parser.parse():
@@ -29,6 +33,7 @@ def main():
 
     result = PrimeImplicantChart(minterms, prime_implicants).run()
 
+    # for result in results:
     simplified_expr = FinalResultFormatter(variables, result).format()
     print("Final result:")
     print(simplified_expr)

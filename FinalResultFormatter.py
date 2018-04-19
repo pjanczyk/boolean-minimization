@@ -11,11 +11,10 @@ class FinalResultFormatter:
 
     def format_implicant(self, implicant) -> str:
         terms = []
-        for idx, bit in enumerate(implicant.bits):
-            if bit is True:
-                terms.append(self.variables[idx])
-            elif bit is False:
-                terms.append('!' + self.variables[idx])
+        for idx in implicant.get_0_bits():
+            terms.append('!' + self.variables[idx])
+        for idx in implicant.get_1_bits():
+            terms.append(self.variables[idx])
 
         if len(terms) == 1:
             return terms[0]

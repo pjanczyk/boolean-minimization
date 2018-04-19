@@ -24,7 +24,7 @@ class VarToken:
         self.name = name
 
     def __repr__(self):
-        return '$' + self.name
+        return f'${self.name}'
 
 
 TokenList = List[Union[Token, VarToken]]

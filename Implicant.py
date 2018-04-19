@@ -24,6 +24,9 @@ class Implicant:
         return ' '.join(bit_to_string(bit) for bit in self.bits) + \
                '  m(' + ','.join(map(str, sorted(self.minterms))) + ')'
 
+    def __repr__(self):
+        return str(self)
+
     def __eq__(self, other):
         return self.bits == other.bits
 
@@ -55,3 +58,9 @@ class Implicant:
             return Implicant(bits, self.minterms | other.minterms)
         else:
             return None
+
+    def get_0_bits(self):
+        return [idx for idx, bit in enumerate(self.bits) if bit is False]
+
+    def get_1_bits(self):
+        return [idx for idx, bit in enumerate(self.bits) if bit is True]
