@@ -2,7 +2,7 @@ from typing import Iterable, List
 
 import MintermFinder
 from Implicant import Implicant
-from Parser import VarToken, Token
+from Parser import VarToken, Token, Tokens
 from PrimeImplicantsFinder import PrimeImplicantsFinder
 
 
@@ -72,9 +72,9 @@ class PrimeImplicantChart:
                                          if implicant not in self.used_implicants and minterm in implicant.minterms]
 
             sum_of_products += [VarToken(idx) for idx in related_implicant_indices]
-            sum_of_products += [Token.AND] * (len(related_implicant_indices) - 1)
+            sum_of_products += [Tokens.AND] * (len(related_implicant_indices) - 1)
 
-        sum_of_products += [Token.OR] * (len(not_used_minterms) - 1)
+        sum_of_products += [Tokens.OR] * (len(not_used_minterms) - 1)
 
         print(sum_of_products)
 

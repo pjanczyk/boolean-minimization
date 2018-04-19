@@ -1,40 +1,39 @@
-from typing import Dict
+from typing import Dict, List
 
-from Parser import VarToken, Token, TokenList
+from Parser import Token, Tokens, VarToken
 
 
-def evaluate(rpn: TokenList, variable_values: Dict[str, bool]) -> bool:
+def evaluate(rpn: List[Token], variable_values: Dict[str, bool]) -> bool:
     stack = []
 
-    for e in rpn:
-        if type(e) is VarToken:
-            stack.append(variable_values[e.name])
-        elif e == Token.CONST_0:
+    unary_operators = {
+        Tokens.NOT: lambda a: not a
+    }
+
+    binary_operators = {
+        Tokens.AND: lambda a, b: a and b,
+        Tokens.OR: lambda a, b: a or b,
+        Tokens.XOR: lambda a, b: a != b,
+        Tokens.EQ: lambda a, b: a == b,
+        Tokens.IMPL: lambda a, b: not a or b
+    }
+
+    for token in rpn:
+        if type(token) is VarToken:
+            stack.append(variable_values[token.name])
+        elif token == Tokens.CONST_0:
             stack.append(False)
-        elif e == Token.CONST_1:
+        elif token == Tokens.CONST_1:
             stack.append(True)
-        elif e == Token.NOT:
-            stack.append(not stack.pop())
-        elif e == Token.AND:
+        elif token in unary_operators.keys():
+            obj = stack.pop()
+            val = unary_operators[token](obj)
+            stack.append(val)
+        elif token in binary_operators.keys():
             rhs = stack.pop()
             lhs = stack.pop()
-            stack.append(lhs and rhs)
-        elif e == Token.OR:
-            rhs = stack.pop()
-            lhs = stack.pop()
-            stack.append(lhs or rhs)
-        elif e == Token.XOR:
-            rhs = stack.pop()
-            lhs = stack.pop()
-            stack.append(lhs != rhs)
-        elif e == Token.EQ:
-            rhs = stack.pop()
-            lhs = stack.pop()
-            stack.append(lhs == rhs)
-        elif e == Token.IMPL:
-            rhs = stack.pop()
-            lhs = stack.pop()
-            stack.append(not lhs or rhs)
+            val = binary_operators[token](lhs, rhs)
+            stack.append(val)
         else:
             assert False
 
