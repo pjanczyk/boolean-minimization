@@ -34,7 +34,7 @@ class PrimeImplicantChart:
         else:
             if self.debug:
                 print("Using Patrick's method:")
-            return self._patricks_method()
+            return self._patricks_method() + list(self.used_implicants)
 
     def _debug_print(self):
         print('     ', end='')
@@ -64,6 +64,14 @@ class PrimeImplicantChart:
         print()
 
     def _eliminate_essential_prime_implicants(self) -> bool:
+        self.prime_implicants = [imp for imp in self.prime_implicants
+                                 if not any(imp != imp2 and (imp.minterms - self.used_minterms) <= imp2.minterms
+                                            for imp2 in self.prime_implicants)]
+
+        if self.debug:
+            print("Eliminated subsets")
+            self._debug_print()
+
         any_eliminated = False
 
         for minterm in self.minterms:
