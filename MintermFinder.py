@@ -2,7 +2,7 @@ import itertools
 from typing import List, Tuple
 
 import Evaluator
-from Implicant import Implicant
+from Minterm import Minterm
 from Parser import Token
 
 
@@ -10,9 +10,8 @@ def _generate_bit_sequences(count: int) -> List[Tuple[bool]]:
     return list(itertools.product([False, True], repeat=count))
 
 
-def generate_minterms(expr_rpn: List[Token], variables: List[str]) -> Tuple[List[int], List[Implicant]]:
-    minterms: List[int] = []
-    implicants: List[Implicant] = []
+def find_minterms(expr_rpn: List[Token], variables: List[str]) -> List[Minterm]:
+    minterms = []
 
     values = _generate_bit_sequences(len(variables))
 
@@ -21,10 +20,6 @@ def generate_minterms(expr_rpn: List[Token], variables: List[str]) -> Tuple[List
         evaluated_value = Evaluator.evaluate(expr_rpn, variable_values)
 
         if evaluated_value:
-            implicant = Implicant(value)
-            minterm = next(iter(implicant.minterms))
+            minterms.append(Minterm(value))
 
-            implicants.append(implicant)
-            minterms.append(minterm)
-
-    return minterms, implicants
+    return list(sorted(minterms, key=lambda minterm: minterm.decimal))

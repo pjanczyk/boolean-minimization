@@ -1,17 +1,21 @@
+import itertools
 from typing import Iterable
 
-import itertools
-
 from Implicant import Implicant
+from Minterm import Minterm
 
 
 class PrimeImplicantsFinder:
-    def __init__(self, implicants: Iterable[Implicant], debug_log=False):
-        self.implicants = list(implicants)
+    def __init__(self, minterms: Iterable[Minterm], debug_log=False):
+        self.implicants = [Implicant.from_minterm(minterm) for minterm in minterms]
         self.debug_log = debug_log
 
     def find_prime_implicants(self):
-        self._debug_print("Original:")
+        if self.debug_log:
+            print()
+            print("Finding prime implicants:")
+
+        self._debug_print("Initial::")
 
         while True:
             any_combined = self._phase_combine()

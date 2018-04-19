@@ -1,16 +1,18 @@
 from typing import Iterable, Optional
 
+from Minterm import Minterm
+
 TriLogic = Optional[bool]
 
 
 class Implicant:
-    def __init__(self, bits: Iterable[TriLogic], minterms: Optional[Iterable[int]] = None):
+    @staticmethod
+    def from_minterm(minterm: Minterm):
+        return Implicant(minterm.bits, [minterm])
+
+    def __init__(self, bits: Iterable[TriLogic], minterms: Iterable[Minterm]):
         self.bits = tuple(bits)
-        if minterms:
-            self.minterms = frozenset(minterms)
-        else:
-            number = sum(2 ** idx for idx, bit in enumerate(bits) if bit)
-            self.minterms = frozenset([number])
+        self.minterms = frozenset(minterms)
 
     def __str__(self):
         def bit_to_string(bit):
@@ -21,8 +23,10 @@ class Implicant:
             elif bit is None:
                 return '-'
 
+        minterm_decimals = sorted(minterm.decimal for minterm in self.minterms)
+
         return ' '.join(bit_to_string(bit) for bit in self.bits) + \
-               '  m(' + ','.join(map(str, sorted(self.minterms))) + ')'
+               '  m(' + ','.join(map(str, minterm_decimals)) + ')'
 
     def __repr__(self):
         return str(self)

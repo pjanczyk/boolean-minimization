@@ -147,22 +147,36 @@ def _infix_to_rpn(expr: List[Token]) -> List[Token]:
 
 class Parser:
 
-    def __init__(self, expr: str):
+    def __init__(self, expr: str, debug_log: bool = False):
         self.expr = expr
         self.variables = None
         self.rpn = None
+        self.debug_log = debug_log
 
     def parse(self) -> bool:
+        if self.debug_log:
+            print("Parsing expression", self.expr)
+
         tokens = _tokenize(self.expr)
 
         if tokens is None:
             return False
 
+        if self.debug_log:
+            print("Tokens:", ' '.join(map(str, tokens)))
+
         if not _validate(tokens):
             return False
 
         self.variables = _extract_variables(tokens)
+
+        if self.debug_log:
+            print("Variables:", ', '.join(self.variables))
+
         self.rpn = _infix_to_rpn(tokens)
+
+        if self.debug_log:
+            print("RPN:", ' '.join(map(str, self.rpn)))
 
         return True
 
