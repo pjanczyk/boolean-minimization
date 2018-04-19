@@ -2,7 +2,6 @@ import string
 import sys
 from enum import Enum
 import itertools
-from typing import List, Union
 
 
 class Token(Enum):
@@ -74,7 +73,7 @@ def validate(tokens):
                 parentheses += 1
             elif token == Token.NOT:
                 pass
-            elif type(token) is VarToken:
+            elif type(token) is VarToken or token in [Token.CONST_0, Token.CONST_1]:
                 state = 2
             else:
                 return False
@@ -126,8 +125,10 @@ def infix_to_rpn(tokens):
                 result.append(operators.pop())
 
             operators.append(token)
-        elif type(token) is VarToken:
+        elif type(token) is VarToken or token in [Token.CONST_0, Token.CONST_1]:
             result.append(token)
+        else:
+            assert False
 
     while len(operators) > 0:
         result.append(operators.pop())
@@ -176,14 +177,14 @@ def evaluate(rpn, variable_values):
     return stack.pop()
 
 
-class Minterm:
-    def __init__(self, bits, sources=None):
+class Implicant:
+    def __init__(self, bits, minterms=None):
         self.bits = tuple(bits)
-        if sources:
-            self.sources = set(sources)
+        if minterms:
+            self.minterms = frozenset(minterms)
         else:
             number = sum(2 ** idx for idx, bit in enumerate(bits) if bit)
-            self.sources = {number}
+            self.minterms = frozenset([number])
 
     def __str__(self):
         def bit_to_string(bit):
@@ -195,7 +196,7 @@ class Minterm:
                 return '-'
 
         return ' '.join(bit_to_string(bit) for bit in self.bits) + \
-               '  m(' + ','.join(map(str, sorted(self.sources))) + ')'
+               '  m(' + ','.join(map(str, sorted(self.minterms))) + ')'
 
     def __eq__(self, other):
         return self.bits == other.bits
@@ -219,28 +220,26 @@ class Minterm:
                 assert b1 == b2
 
         if not conflicts and self_contains_other and not other_contains_self:
-            return Minterm(self.bits, self.sources | other.sources)
+            return Implicant(self.bits, self.minterms | other.minterms)
         elif not conflicts and not self_contains_other and other_contains_self:
-            return Minterm(other.bits, self.sources | other.sources)
+            return Implicant(other.bits, self.minterms | other.minterms)
         elif len(conflicts) == 1 and not self_contains_other and not other_contains_self:
             bits = list(self.bits)
             bits[conflicts[0]] = None
-            return Minterm(bits, self.sources | other.sources)
+            return Implicant(bits, self.minterms | other.minterms)
         else:
             return None
 
 
-class MintermCombiner:
-    def __init__(self, minterms, debug_log=False):
-        self.minterms = list(minterms)
+class PrimeImplicantsFinder:
+    def __init__(self, implicants, debug_log=False):
+        self.implicants = list(implicants)
         self.debug_log = debug_log
 
-    def run(self):
+    def find_prime_implicants(self):
         self.debug_print("Original:")
 
         while True:
-            n = len(self.minterms)
-
             any_combined = self.phase_combine()
             self.debug_print("Combined:")
 
@@ -250,14 +249,16 @@ class MintermCombiner:
             if not any_combined:
                 break
 
+        return self.implicants
+
     def phase_combine(self):
         any_combined = False
-        used = [False] * len(self.minterms)
+        used = [False] * len(self.implicants)
 
         results = []
 
-        for (idx1, minterm1), (idx2, minterm2) in (itertools.combinations(enumerate(self.minterms), 2)):
-            combined = minterm1.combine_with(minterm2)
+        for (idx1, implicant1), (idx2, implicant2) in (itertools.combinations(enumerate(self.implicants), 2)):
+            combined = implicant1.combine_with(implicant2)
 
             if combined is not None:
                 used[idx1] = True
@@ -265,58 +266,86 @@ class MintermCombiner:
                 results.append(combined)
                 any_combined = True
 
-        results += [minterm for idx, minterm in enumerate(self.minterms) if not used[idx]]
+        results += [minterm for idx, minterm in enumerate(self.implicants) if not used[idx]]
 
-        self.minterms = results
+        self.implicants = results
 
         return any_combined
 
     def phase_remove_duplicates(self):
-        self.minterms = list(set(self.minterms))
+        self.implicants = list(set(self.implicants))
 
     def debug_print(self, msg):
         if self.debug_log:
             print(msg)
-            for minterm in self.minterms:
-                print(str(minterm))
+            for implicant in self.implicants:
+                print(str(implicant))
             print()
 
 
 class PrimeImplicantChart:
 
-    def __init__(self, original_minterms, combined_minterms):
-        self.original_minterms = sorted(next(iter(minterm.sources)) for minterm in original_minterms)
-        self.combined_minterms = combined_minterms
+    def __init__(self, minterms, prime_implicants):
+        self.minterms = tuple(minterms)
+        self.prime_implicants = tuple(prime_implicants)
 
-    def run(self):
-        used_original = set()
-        used_combined = set()
+        self.used_minterms = set()
+        self.used_implicants = set()
 
-        for minterm in self.original_minterms:
-            if minterm in used_original:
-                continue
-
-            related_combined = [combined for combined in self.combined_minterms
-                                if combined not in used_combined and minterm in combined.sources]
-
-            if len(related_combined) == 1:
-                used_original |= related_combined[0].sources
-                used_combined.add(related_combined[0])
-
-        for combined in self.combined_minterms:
-            for original in self.original_minterms:
-                if original in combined.sources:
+    def debug_print(self):
+        for implicant in self.prime_implicants:
+            for minterm in self.minterms:
+                if minterm in implicant.minterms:
                     print('X ', end='')
                 else:
-                    print('O ', end='')
-            print(combined)
+                    print('. ', end='')
+            print(implicant)
 
-        return used_combined
+    def run(self):
+        for minterm in self.minterms:
+            if minterm in self.used_minterms:
+                continue
+
+            related_implicants = [implicant for implicant in self.prime_implicants
+                                  if implicant not in self.used_implicants and minterm in implicant.minterms]
+
+            if len(related_implicants) == 1:
+                self.used_minterms |= related_implicants[0].minterms
+                self.used_implicants.add(related_implicants[0])
+
+        return self.used_implicants
+
+
+class FinalResultFormatter:
+
+    def __init__(self, variables, implicants):
+        self.variables = tuple(variables)
+        self.implicants = tuple(implicants)
+
+    def format_implicant(self, implicant):
+        terms = []
+        for idx, bit in enumerate(implicant.bits):
+            if bit is True:
+                terms.append(self.variables[idx])
+            elif bit is False:
+                terms.append('!' + self.variables[idx])
+
+        if len(terms) == 1:
+            return terms[0]
+        else:
+            return '(' + ' & '.join(terms) + ')'
+
+    def format(self):
+        if self.implicants:
+            return ' | '.join(map(self.format_implicant, self.implicants))
+        else:
+            return '0'
 
 
 def main():
-    # expr = sys.argv[1]
-    expr = '(A | B) & (A | C)'
+    expr = sys.argv[1]
+    # expr = '(A | B) & (A | C) => (B ^ C)'
+    # expr = 'A & 0'
     tokens = tokenize(expr)
 
     if tokens is False:
@@ -339,26 +368,25 @@ def main():
     print(values)
 
     minterms = []
+    implicants = []
 
     for v in values:
         variable_dict = dict(zip(variables, v))
         evaluated = evaluate(rpn, variable_dict)
         print(v, evaluated)
         if evaluated:
-            minterms.append(Minterm(v))
+            implicant = Implicant(v)
+            minterm = next(iter(implicant.minterms))
 
-    mc = MintermCombiner(minterms, debug_log=True)
-    mc.run()
-    combined_minterms = mc.minterms
+            implicants.append(implicant)
+            minterms.append(minterm)
 
-    pic = PrimeImplicantChart(minterms, combined_minterms)
+    prime_implicants = PrimeImplicantsFinder(implicants, debug_log=True).find_prime_implicants()
 
-    result = pic.run()
+    result = PrimeImplicantChart(minterms, prime_implicants).run()
 
     print("Final result:")
-    for minterm in result:
-        print(str(minterm))
-    print()
+    print(FinalResultFormatter(variables, result).format())
 
 
 if __name__ == '__main__':
