@@ -2,7 +2,7 @@ from typing import Iterable, List
 
 import MintermFinder
 from Implicant import Implicant
-from Parser import VarToken, Token, Tokens
+from Parser import VarToken, Tokens
 from PrimeImplicantsFinder import PrimeImplicantsFinder
 
 

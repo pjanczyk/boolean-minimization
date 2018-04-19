@@ -20,6 +20,7 @@ def evaluate(rpn: List[Token], variable_values: Dict[str, bool]) -> bool:
 
     for token in rpn:
         if type(token) is VarToken:
+            # noinspection PyUnresolvedReferences
             stack.append(variable_values[token.name])
         elif token == Tokens.CONST_0:
             stack.append(False)

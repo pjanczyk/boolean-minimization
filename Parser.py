@@ -1,5 +1,5 @@
 import string
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 
 class Token:
@@ -40,10 +40,7 @@ class VarToken(Token):
         return str(self)
 
 
-TokenList = List[Token]
-
-
-def _tokenize(expr: str) -> Optional[TokenList]:
+def _tokenize(expr: str) -> Optional[List[Token]]:
     results = []
 
     i = 0
@@ -78,7 +75,7 @@ def _tokenize(expr: str) -> Optional[TokenList]:
     return results
 
 
-def _validate(expr: TokenList) -> bool:
+def _validate(expr: List[Token]) -> bool:
     state = 1
     parentheses = 0
 
@@ -105,11 +102,12 @@ def _validate(expr: TokenList) -> bool:
     return state == 2 and parentheses == 0
 
 
-def _extract_variables(expr: TokenList) -> List[str]:
+def _extract_variables(expr: List[Token]) -> List[str]:
+    # noinspection PyUnresolvedReferences
     return sorted(set(token.name for token in expr if type(token) is VarToken))
 
 
-def _infix_to_rpn(expr: TokenList) -> TokenList:
+def _infix_to_rpn(expr: List[Token]) -> List[Token]:
     priorities = {
         Tokens.NOT: 2,
         Tokens.AND: 1,
@@ -168,8 +166,8 @@ class Parser:
 
         return True
 
-    def get_variables(self) -> Tuple[str]:
-        return tuple(self.variables)
+    def get_variables(self) -> List[str]:
+        return self.variables
 
-    def get_rpn_expr(self) -> TokenList:
-        return list(self.rpn)
+    def get_rpn_expr(self) -> List[Token]:
+        return self.rpn
