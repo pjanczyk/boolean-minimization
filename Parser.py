@@ -63,7 +63,7 @@ def _tokenize(expr: str) -> Optional[List[Token]]:
         if expr[i] in string.ascii_letters:
             begin = i
 
-            while i < len(expr) and expr[i] in string.ascii_letters:
+            while i < len(expr) and expr[i] in (string.ascii_letters + string.digits):
                 i += 1
 
             text = expr[begin:i]
