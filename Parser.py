@@ -119,7 +119,7 @@ def infix_to_rpn(expr: TokenList) -> TokenList:
         elif token in [Token.NOT, Token.AND, Token.OR, Token.XOR, Token.IMPL, Token.EQ]:
             while len(operators) > 0 \
                     and operators[-1] != Token.PAREN_LEFT \
-                    and priorities[operators[-1]] > priorities[token]:
+                    and priorities[operators[-1]] >= priorities[token]:
                 result.append(operators.pop())
 
             operators.append(token)
